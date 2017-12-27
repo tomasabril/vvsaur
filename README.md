@@ -1,17 +1,15 @@
-# vvsaur
-Very very simple aur helper
+# vvsaur ![no alt text](logo.png)
+
+Very very simple aur helper 
 
 >Author: Tomás Abril
 
 This very very simple aur helper was created primarily for my personal use.
 
-Current functions:
--
-<!-- - check and update packages -->
+**Current functions:**
+- check and update packages +-
 
-Planned functions:
--
-- check and update packages
+**Planned functions:**
 - install new packages
 - see pkgbuild file changes
 
