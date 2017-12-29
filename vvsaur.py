@@ -6,11 +6,10 @@
 """
 
 import os
-import subprocess
+import config
 
-# TODO: read config file
-mypath = '/home/samot/aur/'
-makepkgCmd = 'BUILDDIR=/tmp/makepkg makepkg -cCsi --check'
+mypath = os.path.expanduser(config.folder)
+makepkgCmd = config.cmd
 
 if not os.path.exists(mypath):
     os.makedirs(mypath)
@@ -25,26 +24,35 @@ print("found the aur packages: ")
 for p in folders:
     print(' > ' + p)
 
-print("vvsaur - checking for updates")
+print("checking for updates...")
 
-for folder in folders:
+for pkgName in folders:
     os.chdir(mypath)
-    # TODO: read version of installed/available package
-    process = subprocess.Popen(
-        ["git", "-C", mypath + folder, "fetch"], stdout=subprocess.PIPE)
-    output = process.communicate()[0]
-    print("" + output.decode("utf-8"))
-    if len(output.decode("utf-8")) > 0:
-        print("Found an update to " + folder)
-        # print("Do you with to update it? YES/no")
-        # confirm = input()
-        # if confirm == "" or confirm.lower() == "y" or confirm.lower() == "yes":
-        # pulling new pkgbuild
-        command = 'git -C ' + mypath + folder + ' pull'
-        print(command)
-        os.system(command)
-        # upgrading package
-        print("Upgrading...")
-        os.chdir(mypath + folder)
-        print(makepkgCmd)
-        os.system(makepkgCmd)
+    # pull new pkgbuild
+    command = 'git -C ' + mypath + pkgName + ' pull'
+    print('\n' + command)
+    os.system(command)
+    # checking installed version
+    output = os.popen('pacman -Q ' + pkgName).read()
+    if not output.startswith(pkgName):
+        print(' >> ' + pkgName + ' is not installed, continuing to next package')
+        continue
+    installedVer = output.split(' ')[1].strip()
+    # check pkgbuild version
+    pkgVer = ''
+    for line in open(mypath + pkgName + '/PKGBUILD', 'r'):
+        if line.startswith('pkgver'):
+            pkgVer = line.split('=')[1].strip().strip('\'')
+        if line.startswith('pkgrel'):
+            pkgVer = pkgVer + '-' + line.split('=')[1].strip().strip('\'')
+            break
+    if installedVer != pkgVer:
+        print(pkgName + ' installed:' + installedVer + ' available:' + pkgVer)
+        print("Do you wish to upgrade it? YES/no")
+        confirm = input()
+        if confirm == "" or confirm.lower() == "y" or confirm.lower() == "yes":
+            # upgrading package
+            print("Upgrading...")
+            os.chdir(mypath + pkgName)
+            print(makepkgCmd)
+            os.system(makepkgCmd)
