@@ -8,10 +8,11 @@ This very very simple aur helper was created primarily for my personal use.
 
 **Current functions:**
 - check and update packages
+- install new packages
 
 **Planned functions:**
-- install new packages
 - see pkgbuild file changes
+- install dependencies from AUR during install
 
 # How it works
 

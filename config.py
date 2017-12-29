@@ -3,5 +3,5 @@
 # default folder ~/aur/
 folder = '~/aur/'
 
-# default command BUILDDIR=/tmp/makepkg makepkg -cCsi --check --verifysource
-cmd = 'BUILDDIR=/tmp/makepkg makepkg -cCsi --check --verifysource'
+# default command BUILDDIR=/tmp/makepkg makepkg -cCsi --check
+cmd = 'BUILDDIR=/tmp/makepkg makepkg -cCsi --check'
