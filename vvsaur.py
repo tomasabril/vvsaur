@@ -8,37 +8,52 @@
 
 import os
 import sys
+import subprocess
 import config
 
 mypath = os.path.expanduser(config.folder)
 makepkgCmd = config.cmd
 folders = []
+verbose = False
 
 
 def init():
     if not os.path.exists(mypath):
         os.makedirs(mypath)
     for root, dirs, files in os.walk(mypath):
-        print("Looking at folder " + root)
+        if verbose:
+            print("Looking at folder " + root)
         folders.extend(dirs)
         break
-    print("found the aur packages: ")
-    for p in folders:
-        print(' > ' + p)
+    if verbose:
+        print("found the aur packages: ")
+        for p in folders:
+            print(' > ' + p)
 
 
 def update():
-    print("checking for updates...")
+    print("Checking for updates", end='')
+    if verbose:
+        print('...')
+    sys.stdout.flush()
     for pkgName in folders:
         os.chdir(mypath)
         # pull new pkgbuild
         command = 'git -C ' + mypath + pkgName + ' pull'
-        print('\n' + command)
-        os.system(command)
+        output = subprocess.check_output(command, shell=True).decode('utf-8')
+        if verbose:
+            print('\n+ ' + command)
+            print(output, end='')
+        else:
+            print('.', end='')
+            sys.stdout.flush()
         # checking installed version
-        output = os.popen('pacman -Q ' + pkgName).read()
-        if not output.startswith(pkgName):
-            print(' >> ' + pkgName + ' is not installed, continuing to next package')
+        try:
+            output = subprocess.check_output(
+                'pacman -Q ' + pkgName, stderr=subprocess.STDOUT, shell=True).decode('utf-8')
+        except subprocess.CalledProcessError as e:
+            if verbose:
+                print(' >> ' + pkgName + ' is not installed, continuing to next package')
             continue
         installedVer = output.split(' ')[1].strip()
         # check pkgbuild version
@@ -59,26 +74,30 @@ def update():
                 print("Upgrading...")
                 os.chdir(mypath + pkgName)
                 print(makepkgCmd)
-                os.system(makepkgCmd)
+                subprocess.call(makepkgCmd, shell=True)
+    print('')
 
 
 def installNew():
     newPkg = sys.argv[1]
-    print('\n installing ' + newPkg + '\n')
+    print('>> installing ' + newPkg + '\n')
     command = 'git -C ' + mypath + ' clone https://aur.archlinux.org/' + newPkg + '.git'
-    print(command)
-    os.system(command)
+    print('+ ' + command)
+    subprocess.call(command, shell=True)
     if not os.path.isfile(mypath + newPkg + '/PKGBUILD'):
         print('Could not find package ' + newPkg)
         os.system('rm -r ' + mypath + newPkg)
     else:
-        print("Installing...")
+        print('')
         os.chdir(mypath + newPkg)
-        print(makepkgCmd)
-        os.system(makepkgCmd)
+        print('+ ' + makepkgCmd)
+        subprocess.call(makepkgCmd, shell=True)
 
 
-if len(sys.argv) == 2:
+if len(sys.argv) > 1:
+    if len(sys.argv) == 3:
+        if sys.argv[2] == '-v':
+            verbose = True
     init()
     if sys.argv[1] == 'u':
         update()
@@ -87,4 +106,5 @@ if len(sys.argv) == 2:
 else:
     print('usage:\n' +
           ' vvsaur u        - upgrade packages\n' +
-          ' vvsaur pkgName  - install pkgName from AUR\n')
+          ' vvsaur pkgName  - install pkgName from AUR\n' +
+          ' -v              - be verbose\n')
