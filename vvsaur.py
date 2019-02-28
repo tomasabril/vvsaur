@@ -49,13 +49,13 @@ def update():
             sys.stdout.flush()
         # checking installed version
         try:
-            output = subprocess.check_output(
-                'pacman -Q ' + pkgName, stderr=subprocess.STDOUT, shell=True).decode('utf-8')
+            p = subprocess.run('pacman -Q ' + pkgName, stdout=subprocess.PIPE, stderr=subprocess.PIPE ,check=True, shell=True, bufsize=1, universal_newlines=True)
         except subprocess.CalledProcessError as e:
             if verbose:
-                print(' >> ' + pkgName + ' is not installed, continuing to next package')
+                print(' >> ' + pkgName +
+                      ' is not installed, continuing to next package')
             continue
-        installedVer = output.split(' ')[1].strip()
+        installedVer = p.stdout.split(' ')[1].strip()
         # check pkgbuild version
         pkgVer = ''
         for line in open(mypath + pkgName + '/PKGBUILD', 'r'):
@@ -74,16 +74,18 @@ def update():
                 print("Upgrading...")
                 os.chdir(mypath + pkgName)
                 print(makepkgCmd)
-                subprocess.call(makepkgCmd, shell=True)
+                subprocess.run(makepkgCmd, shell=True,
+                               bufsize=1, universal_newlines=True)
     print('')
 
 
-def installNew():
-    newPkg = sys.argv[1]
+def installNew(newPkg):
     print('>> installing ' + newPkg + '\n')
+    # get pkgbuild from git
     command = 'git -C ' + mypath + ' clone https://aur.archlinux.org/' + newPkg + '.git'
     print('+ ' + command)
     subprocess.call(command, shell=True)
+    # if not found show error and delete folder
     if not os.path.isfile(mypath + newPkg + '/PKGBUILD'):
         print('Could not find package ' + newPkg)
         os.system('rm -r ' + mypath + newPkg)
@@ -91,7 +93,25 @@ def installNew():
         print('')
         os.chdir(mypath + newPkg)
         print('+ ' + makepkgCmd)
-        subprocess.call(makepkgCmd, shell=True)
+        # build and install package
+        # try:
+        p = subprocess.Popen(makepkgCmd, shell=True, bufsize=1 , universal_newlines=True
+                        # ,stdout=subprocess.PIPE
+                        # ,stderr=subprocess.PIPE
+                        ).wait()
+        # pcode = p.returncode
+        pcode = p
+        # on error
+        if pcode != 0:
+        # if dependecies are not found search AUR
+            print('Some dependencies not found on official repositories')
+            # missingPkg = errorText.splitlines()[0].split(':')[2].strip()
+            # if verbose:
+            #     print('\nError on package install: \n' + errorText)
+            # print(missingPkg + ' not found on repositories. Search AUR? [Y/n]')
+            # confirm = input()
+            # if confirm == "" or confirm.lower() == "y" or confirm.lower() == "yes":
+            #     installNew(missingPkg)
 
 
 if len(sys.argv) > 1:
@@ -102,7 +122,7 @@ if len(sys.argv) > 1:
     if sys.argv[1] == 'u':
         update()
     else:
-        installNew()
+        installNew(sys.argv[1])
 else:
     print('usage:\n' +
           ' vvsaur u        - upgrade packages\n' +
