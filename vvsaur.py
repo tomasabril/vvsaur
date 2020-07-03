@@ -39,7 +39,7 @@ def update():
     for pkgName in folders:
         os.chdir(mypath)
         # pull new pkgbuild
-        command = 'git -C ' + mypath + pkgName + ' pull'
+        command = 'git -C ' + mypath + pkgName + ' pull --no-rebase'
         output = subprocess.check_output(command, shell=True).decode('utf-8')
         if verbose:
             print('\n+ ' + command)
@@ -65,7 +65,7 @@ def update():
                 pkgVer = pkgVer + '-' + line.split('=')[1].strip().strip('\'')
                 break
         if installedVer != pkgVer:
-            print(pkgName + ' installed:' +
+            print('\n' + pkgName + ' installed:' +
                   installedVer + ' available:' + pkgVer)
             print("Do you wish to upgrade it? [Y/n]")
             confirm = input()
